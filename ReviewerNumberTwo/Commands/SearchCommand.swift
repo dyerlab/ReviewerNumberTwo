@@ -63,14 +63,14 @@ struct SearchCommand: AsyncParsableCommand {
         let rawQuery = try await embeddingProvider.embed(query)
         let queryVector = rawQuery.normal   // L2-normalize; safe for both FDL and pre-normalized vectors
 
-        // Stage 1: cosine similarity retrieval (dot product of normalized vectors = cosine similarity)
+        // Stage 1: cosine similarity retrieval
         let isFDL = provider == .fdl
         let scored: [(Hit, Double)] = candidates.map { hit in
             let stored = isFDL ? hit.embedding.vector.normal : hit.embedding.vector
             return (hit, queryVector .* stored)
         }
 
-        let candidateCount = min(topK * 5, scored.count)
+        let candidateCount = Self.rerankerCandidateCount(topK: topK, available: scored.count)
         let topCandidates = scored
             .sorted { $0.1 > $1.1 }
             .prefix(candidateCount)
@@ -101,5 +101,13 @@ struct SearchCommand: AsyncParsableCommand {
             print("    \(snippet)\(ellipsis)")
             print()
         }
+    }
+
+    // MARK: - Helpers (internal for testing)
+
+    /// Returns the number of candidates to pass to the cross-encoder reranker:
+    /// `topK × 5`, clamped to the number of available scored results.
+    static func rerankerCandidateCount(topK: Int, available: Int) -> Int {
+        min(topK * 5, available)
     }
 }

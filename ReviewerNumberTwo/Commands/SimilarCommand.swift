@@ -41,13 +41,7 @@ struct SimilarCommand: AsyncParsableCommand {
             return
         }
 
-        // Locate target paper by filename or DOI
-        guard let target = allCorpora.first(where: { corpus in
-            corpus.metadata["filename"] == paper
-                || corpus.metadata["filename"]?.hasPrefix(paper) == true
-                || corpus.metadata["doi"] == paper
-                || corpus.label == paper
-        }) else {
+        guard let target = Self.findPaper(in: allCorpora, matching: paper) else {
             print("Paper '\(paper)' not found in corpus.")
             print("Available: \(allCorpora.map { $0.metadata["filename"] ?? $0.label }.joined(separator: ", "))")
             return
@@ -67,7 +61,6 @@ struct SimilarCommand: AsyncParsableCommand {
             let otherEmbeddings = other.embeddings.filter { $0.provider == provider.option }
             guard !otherEmbeddings.isEmpty else { continue }
 
-            // Collect all pairwise cosine similarities
             var pairScores: [Double] = []
             for te in targetEmbeddings {
                 let tv = isFDL ? te.vector.normal : te.vector
@@ -77,11 +70,7 @@ struct SimilarCommand: AsyncParsableCommand {
                 }
             }
 
-            // Mean of top-3 (or all if fewer) as the paper-level score
-            pairScores.sort(by: >)
-            let topN = min(3, pairScores.count)
-            let score = pairScores.prefix(topN).reduce(0.0, +) / Double(topN)
-            paperScores.append((other, score))
+            paperScores.append((other, Self.meanTopN(pairScores, n: 3)))
         }
 
         let results = paperScores.sorted { $0.score > $1.score }.prefix(topK)
@@ -95,5 +84,27 @@ struct SimilarCommand: AsyncParsableCommand {
             print("    Score : \(String(format: "%.4f", entry.score))")
             print()
         }
+    }
+
+    // MARK: - Helpers (internal for testing)
+
+    /// Finds a corpus by exact filename, filename prefix, DOI, or label.
+    /// Returns the first match in corpus order.
+    static func findPaper(in corpora: [Corpus], matching identifier: String) -> Corpus? {
+        corpora.first {
+            $0.metadata["filename"] == identifier
+                || $0.metadata["filename"]?.hasPrefix(identifier) == true
+                || $0.metadata["doi"] == identifier
+                || $0.label == identifier
+        }
+    }
+
+    /// Returns the mean of the top `n` values in `scores` (or all values if fewer than `n`).
+    /// Returns 0 if `scores` is empty.
+    static func meanTopN(_ scores: [Double], n: Int) -> Double {
+        guard !scores.isEmpty else { return 0 }
+        let sorted = scores.sorted(by: >)
+        let topN   = min(n, sorted.count)
+        return sorted.prefix(topN).reduce(0.0, +) / Double(topN)
     }
 }

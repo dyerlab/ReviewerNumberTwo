@@ -2,7 +2,7 @@
 //  ArgumentTypes.swift
 //  ReviewerNumberTwo
 //
-//  CLI argument types for embedding provider and granularity options.
+//  CLI argument types for embedding provider, granularity, and manuscript section options.
 //
 
 import ArgumentParser
@@ -37,3 +37,15 @@ enum ProviderArgument: String, CaseIterable, ExpressibleByArgument {
 // MARK: - Granularity
 
 extension EmbeddingGranularity: @retroactive ExpressibleByArgument {}
+
+// MARK: - Manuscript section
+
+extension ManuscriptParts: @retroactive ExpressibleByArgument {
+    public init?(argument: String) {
+        let lower = argument.lowercased()
+        guard let match = ManuscriptParts.allCases.first(where: { $0.rawValue.lowercased() == lower }) else {
+            return nil
+        }
+        self = match
+    }
+}
