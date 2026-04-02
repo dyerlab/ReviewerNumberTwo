@@ -7,7 +7,6 @@ Built on the [`Linguistics`](https://github.com/dyerlab/Linguistics) Swift packa
 **Platform:** macOS 14.6+ · Apple Silicon (Metal required for MLX models)
 
 ---
-
 ## Overview
 
 `ReviewerNumberTwo` takes a folder of Markdown files (converted from PDFs), embeds each section or paragraph using one or more embedding backends, and persists everything to a local SQLite database. The database is designed for direct consumption in R via `RSQLite`.
@@ -37,12 +36,24 @@ make uninstall      # removes the installed binary
 
 ## Workflow
 
+### Step 0 - Get python libraries installed.  It is amazing to me how in 2026, installing python libraries is still a practice in self loathing and hatred...  Try this and if it fails, here is what I had to do.  
+
+```bash
+pip install marker-pdf
+```
+
+Here is how I got it going on macos, I used `brew` after much rendering of cloths and gnashing of teeth.
+
+```bash
+ brew install jpeg libtiff freetype lcms2 webp tcl-tk zlib   
+ CPATH=/opt/homebrew/include LIBRARY_PATH=/opt/homebrew/lib pipx install marker-pdf
+```
+
 ### Step 1 — Convert PDFs to Markdown
 
 PDFs are not processed by this tool. Use [`marker-pdf`](https://github.com/VikParuchuri/marker) via the `convert_pdfs.py` helper in the [`Linguistics`](https://github.com/dyerlab/Linguistics) repo:
 
 ```bash
-pip install marker-pdf
 python convert_pdfs.py /path/to/pdfs/ /path/to/markdown/ --workers 4
 ```
 
